@@ -1,3 +1,4 @@
 src/data/
-cursorrules.md
 node_modules/
+.cursor/
+.cursorrules
