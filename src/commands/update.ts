@@ -98,7 +98,6 @@ function exportJSON(): void {
       generated_at: new Date().toISOString(),
       total_routes: routes.length,
       total_stops: stops.length,
-      sources: ["api.buz.yt", "catalogodatos.nl.gob.mx"],
     },
     routes: routes.map((r: any) => ({
       ...r,
