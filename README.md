@@ -1,12 +1,14 @@
-# 🚌 MTY Transit
+# MTY Transporte
 
-SDK y CLI para consultar rutas de transporte público del Área Metropolitana de Monterrey (AMM), Nuevo León, México.
+SDK y CLI para consultar rutas de transporte público del Área Metropolitana
+de Monterrey (AMM), Nuevo León, México.
 
-Funciona **sin servidor** — los datos se guardan localmente y las consultas son instantáneas.
+Funciona **sin servidor** — los datos se guardan localmente y las consultas
+son instantáneas.
 
 ---
 
-## 📦 Instalación
+## Instalación
 
 ### Como CLI global
 
@@ -30,7 +32,7 @@ npm install
 
 ---
 
-## ⚡ Inicio rápido
+## Inicio rápido
 
 Antes de usar el CLI por primera vez, descarga y construye la base de datos local:
 
@@ -38,16 +40,12 @@ Antes de usar el CLI por primera vez, descarga y construye la base de datos loca
 mty-transit update
 ```
 
-Esto descarga datos desde:
-
-- `api.buz.yt` — rutas, paradas y recorridos del AMM
-- `catalogodatos.nl.gob.mx` — datasets oficiales del Gobierno de NL
-
-Los datos se guardan en `./data/mty-transit.db` y se exportan a `./data/mty-transit.json`.
+Los datos se guardan en `./data/mty-transit.db` y se exportan
+a `./data/mty-transit.json`.
 
 ---
 
-## 🖥️ Uso del CLI
+## Uso del CLI
 
 ### Actualizar datos
 
@@ -55,14 +53,14 @@ Los datos se guardan en `./data/mty-transit.db` y se exportan a `./data/mty-tran
 mty-transit update
 ```
 
-Se recomienda ejecutar una vez al mes ya que las rutas cambian poco.
+Se recomienda ejecutar una vez al mes — las rutas cambian poco.
 
 ---
 
 ### Buscar rutas entre dos puntos
 
 ```bash
-mty-transit rutas \
+mty-transit routes \
   --alat <latitud_origen> \
   --alng <longitud_origen> \
   --blat <latitud_destino> \
@@ -72,7 +70,7 @@ mty-transit rutas \
 **Ejemplo** — San Nicolás de los Garza → Centro Monterrey:
 
 ```bash
-mty-transit rutas \
+mty-transit routes \
   --alat 25.7481 --alng -100.2978 \
   --blat 25.6700 --blng -100.3350
 ```
@@ -87,22 +85,22 @@ mty-transit rutas \
 | `--blng`   | Longitud del destino           | requerido |
 | `--format` | `table` \| `json` \| `geojson` | `table`   |
 
-**Ejemplo con output JSON:**
+**Output JSON:**
 
 ```bash
-mty-transit rutas \
+mty-transit routes \
   --alat 25.7481 --alng -100.2978 \
   --blat 25.6700 --blng -100.3350 \
   --format json
 ```
 
-**Ejemplo exportando GeoJSON** (compatible con Mapbox, Leaflet, QGIS):
+**Output GeoJSON** (compatible con Mapbox, Leaflet, QGIS):
 
 ```bash
-mty-transit rutas \
+mty-transit routes \
   --alat 25.7481 --alng -100.2978 \
   --blat 25.6700 --blng -100.3350 \
-  --format geojson > rutas.geojson
+  --format geojson > routes.geojson
 ```
 
 ---
@@ -110,74 +108,70 @@ mty-transit rutas \
 ### Ver detalle de una ruta
 
 ```bash
-mty-transit detalle <id>
+mty-transit detail <id>
 ```
 
 **Ejemplo:**
 
 ```bash
-mty-transit detalle 9
+mty-transit detail 9
 ```
-
-**Opciones:**
 
 | Opción     | Descripción         | Default |
 | ---------- | ------------------- | ------- |
 | `--format` | `json` \| `geojson` | `json`  |
 
-**Ejemplo con recorrido y paradas en GeoJSON:**
+**Recorrido y paradas en GeoJSON:**
 
 ```bash
-mty-transit detalle 9 --format geojson > ruta-101.geojson
+mty-transit detail 9 --format geojson > route-101.geojson
 ```
 
 ---
 
-## 📦 Uso como SDK
-
-Importa las funciones directamente en tu proyecto TypeScript o JavaScript:
+## Uso como SDK
 
 ```typescript
-import { getRutasAtoB, getDetalleRutas, reverseGeocode } from "mty-transit";
+import { getRoutesBetween, getRoutesById, reverseGeocode } from "mty-transit";
 
 // Rutas entre dos puntos
-const rutas = await getRutasAtoB(25.7481, -100.2978, 25.67, -100.335);
-console.log(rutas);
+const routes = await getRoutesBetween(25.7481, -100.2978, 25.67, -100.335);
+console.log(routes);
 // [{ id: '6', shortName: '1', longName: 'Sector 1 Central...', type: 'Bus' }, ...]
 
-// Detalle completo con paradas
-const detalle = await getDetalleRutas(["6", "9"]);
-console.log(detalle.trips.stops);
+// Detalle completo con paradas y recorrido
+const detail = await getRoutesById(["6", "9"]);
+console.log(detail.trips.stops);
 // [{ name: 'Av. Constitución', lat: 25.67, lng: -100.33 }, ...]
 
-// Geocodificación inversa
-const lugar = await reverseGeocode(25.7481, -100.2978);
-console.log(lugar); // 'San Nicolás de los Garza'
+// Geocodificación inversa (coordenadas → nombre de lugar)
+const place = await reverseGeocode(25.7481, -100.2978);
+console.log(place); // 'San Nicolás de los Garza'
 ```
 
 ---
 
-## 📁 Estructura de datos
+## Estructura de datos
 
-Después de ejecutar `update`, encontrarás en `./data/`:
+Después de `update`, encontrarás en `./data/`:
 
 ```
 data/
-├── mty-transit.db      ← Base de datos SQLite (para queries del SDK)
-└── mty-transit.json    ← Export completo legible en JSON
+├── mty-transit.db      ← SQLite para queries del SDK
+└── mty-transit.json    ← Export legible en JSON
 ```
 
-### Estructura del JSON exportado
+### Estructura del JSON
 
 ```json
 {
-  "metadata": {
-    "generado": "2026-03-16T01:30:00.000Z",
-    "totalRutas": 111,
-    "totalParadas": 26,
-    "fuentes": ["api.buz.yt", "catalogodatos.nl.gob.mx"]
+  "meta": {
+    "generated_at": "2026-03-16T01:30:00.000Z",
+    "total_routes": 111,
+    "total_stops": 26,
+    "sources": ["transit-data"]
   },
-  "rutas": [
+  "routes": [
     {
       "id": "9",
       "short_name": "101",
@@ -188,12 +182,12 @@ data/
       "encoded_line": "w`g|C|sbcR...",
       "source": "buzyt",
       "updated_at": "2026-03-16T01:30:00.000Z",
-      "paradas": [
+      "stops": [
         {
-          "nombre": "Av. Constitución",
+          "name": "Av. Constitución",
           "lat": 25.67,
           "lng": -100.33,
-          "orden": 0
+          "order_index": 0
         }
       ]
     }
@@ -203,17 +197,17 @@ data/
 
 ---
 
-## 🗺️ Visualizar rutas en un mapa
+## Visualizar en un mapa
 
-El output `--format geojson` es compatible con cualquier herramienta de mapas:
+El output `--format geojson` es compatible con cualquier herramienta:
 
 ### Mapbox GL JS
 
 ```javascript
 map.addLayer({
-  id: "rutas",
+  id: "routes",
   type: "line",
-  source: { type: "geojson", rutasGeoJSON },
+  source: { type: "geojson", routesGeoJSON },
   paint: { "line-color": "#e74c3c", "line-width": 3 },
 });
 ```
@@ -221,23 +215,12 @@ map.addLayer({
 ### Leaflet
 
 ```javascript
-L.geoJSON(rutasGeoJSON).addTo(map);
+L.geoJSON(routesGeoJSON).addTo(map);
 ```
 
-### QGIS / Google Earth
+### Online (sin código)
 
-Arrastra el archivo `.geojson` directamente.
-
----
-
-## 🔌 Fuentes de datos
-
-| Fuente                    | Tipo    | Descripción                           |
-| ------------------------- | ------- | ------------------------------------- |
-| `api.buz.yt`              | GraphQL | Rutas, paradas y recorridos del AMM   |
-| `catalogodatos.nl.gob.mx` | CSV     | Datasets oficiales del Gobierno de NL |
-
-> **Nota:** Este proyecto no está afiliado con RutaDirecta, buz.yt ni el Gobierno de Nuevo León. Los datos son públicos y se consumen respetando las fuentes originales.
+Arrastra el archivo `.geojson` a **[geojson.io](https://geojson.io)**.
 
 ---
 
@@ -247,36 +230,35 @@ Arrastra el archivo `.geojson` directamente.
 # Instalar dependencias
 npm install
 
-# Correr en modo desarrollo (sin compilar)
+# Modo desarrollo
 npx tsx src/cli.ts update
-npx tsx src/cli.ts rutas --alat 25.7481 --alng -100.2978 --blat 25.67 --blng -100.33
+npx tsx src/cli.ts routes --alat 25.7481 --alng -100.2978 --blat 25.67 --blng -100.33
 
-# Compilar para producción
+# Compilar
 npm run build
 
-# Probar el build
+# Probar build
 node dist/cli.js update
 ```
 
 ### Estructura del proyecto
 
 ```
-mty-transit/
+MTY-Transporte/
 ├── src/
 │   ├── db/
-│   │   ├── schema.ts       ← Definición de tablas SQLite
+│   │   ├── schema.ts       ← Tablas SQLite
 │   │   ├── client.ts       ← Conexión a la DB
-│   │   └── cache.ts        ← Caché de queries AtoB
+│   │   └── cache.ts        ← Caché de consultas
 │   ├── scrapers/
-│   │   ├── buzyt.ts        ← Cliente GraphQL de api.buz.yt
-│   │   └── gobierno-nl.ts  ← Parser de CSVs del Gobierno NL
+│   │   └── buzyt.ts        ← Cliente de datos de transporte
 │   ├── commands/
-│   │   ├── update.ts       ← Lógica del comando update
-│   │   └── query.ts        ← Lógica de consultas y export
+│   │   ├── update.ts       ← Comando update
+│   │   └── query.ts        ← Comandos de consulta
 │   ├── types.ts            ← Interfaces TypeScript
-│   ├── cli.ts              ← Entry point del CLI
+│   ├── cli.ts              ← Entry point CLI
 │   └── index.ts            ← Exports del SDK
-├── data/                   ← Generado por update (no se sube a git)
+├── data/                   ← Generado por update (no incluir en git)
 │   ├── mty-transit.db
 │   └── mty-transit.json
 ├── package.json
@@ -286,21 +268,18 @@ mty-transit/
 
 ---
 
-## 📋 Roadmap
+## Aviso
 
-- [ ] Soporte para más municipios del AMM (Apodaca, Escobedo, García)
-- [ ] Comando `mty-transit paradas --ruta <id>` para listar paradas de una ruta
-- [ ] Integración con Metrorrey (Línea 1, 2 y 3)
-- [ ] Estimación de tiempo de viaje entre dos puntos
-- [ ] Export en formato GTFS estándar
+Este proyecto es de uso personal y educativo. Los datos de transporte
+se obtienen de fuentes públicas del AMM. No está afiliado con ninguna
+entidad gubernamental ni empresa de transporte.
 
 ---
 
-## 📄 Licencia
+## Licencia
 
-MIT — libre para uso personal y comercial.
+MIT — libre para uso personal y educativo.
 
 ```
 
-Fuentes
 ```

@@ -1,10 +1,8 @@
 import { writeFileSync } from "fs";
 import { join } from "path";
 import { getRoutesBetween, getRoutesById } from "../scrapers/buzyt.js";
-import { scrapeGobiernoNL } from "../scrapers/gobierno-nl.js";
 import { db, DATA_DIR } from "../db/client.js";
 
-// Pares de coordenadas estratégicos para descubrir el máximo de rutas del AMM
 const AMM_COORD_PAIRS = [
   { aLat: 25.65, aLng: -100.289, bLat: 25.78, bLng: -100.31 }, // Sur → Norte
   { aLat: 25.72, aLng: -100.19, bLat: 25.67, bLng: -100.34 }, // Oriente → Centro
@@ -29,7 +27,7 @@ const insertStop = db.prepare(`
 `);
 
 async function discoverRouteIds(): Promise<string[]> {
-  console.log("\n📡 Descubriendo rutas desde buz.yt...");
+  console.log("\nObteniendo rutas...");
   const routeIds = new Set<string>();
 
   for (const pair of AMM_COORD_PAIRS) {
@@ -43,12 +41,12 @@ async function discoverRouteIds(): Promise<string[]> {
     process.stdout.write(`  → ${routeIds.size} rutas únicas descubiertas\r`);
   }
 
-  console.log(`\n  ✅ Total: ${routeIds.size} rutas`);
+  console.log(`\n  Total: ${routeIds.size} rutas`);
   return Array.from(routeIds);
 }
 
 async function fetchAndStoreRoutes(ids: string[]): Promise<void> {
-  console.log("\n📦 Descargando detalle y paradas de cada ruta...");
+  console.log("\nDescargando detalle y paradas de cada ruta...");
 
   // Limpiar paradas previas de buz.yt para re-insertarlas frescas
   db.prepare(`DELETE FROM stops WHERE source = 'buzyt'`).run();
@@ -110,13 +108,11 @@ function exportJSON(): void {
 
   const outputPath = join(DATA_DIR, "mty-transit.json");
   writeFileSync(outputPath, JSON.stringify(output, null, 2));
-  console.log(`📄 JSON exportado en ./data/mty-transit.json`);
+  console.log(`JSON exportado en ./data/mty-transit.json`);
 }
 
 export async function runUpdate(): Promise<void> {
-  console.log("🔄 Actualizando MTY Transit...\n");
-
-  await scrapeGobiernoNL();
+  console.log("Actualizando MTY Transit...\n");
 
   const ids = await discoverRouteIds();
   await fetchAndStoreRoutes(ids);
