@@ -1,4 +1,7 @@
 src/data/
+dist/
 node_modules/
 .cursor/
+.claude/
 .cursorrules
+CLAUDE.md

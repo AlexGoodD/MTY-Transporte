@@ -1,6 +1,7 @@
 import { writeFileSync } from "fs";
 import { join } from "path";
 import { getRoutesBetween, getRoutesById } from "../scrapers/buzyt.js";
+import { fetchSetmeRoutes, slugifySetme } from "../scrapers/setme.js";
 import { db, DATA_DIR } from "../db/client.js";
 
 const AMM_COORD_PAIRS = [
@@ -90,19 +91,41 @@ async function fetchAndStoreRoutes(ids: string[]): Promise<void> {
 }
 
 function exportJSON(): void {
-  const routes = db.prepare(`SELECT * FROM routes`).all();
-  const stops = db.prepare(`SELECT * FROM stops`).all();
+  const routes = db
+    .prepare(
+      `SELECT id, short_name, long_name, type, color, encoded_line, source
+       FROM routes
+       ORDER BY CAST(short_name AS INTEGER), short_name, source`,
+    )
+    .all();
+
+  const rawStops = db
+    .prepare(
+      `SELECT route_id, name, lat, lng, order_index, source
+       FROM stops
+       ORDER BY route_id, order_index`,
+    )
+    .all() as Array<{
+      route_id: string;
+      name: string;
+      lat: number;
+      lng: number;
+      order_index: number;
+      source: string;
+    }>;
+
+  // Normalizar name vacío a null (paradas SETME sin nombre en KML)
+  const stops = rawStops.map((s) => ({ ...s, name: s.name || null }));
 
   const output = {
     meta: {
       generated_at: new Date().toISOString(),
       total_routes: routes.length,
       total_stops: stops.length,
+      sources: ["buzyt", "setme"],
     },
-    routes: routes.map((r: any) => ({
-      ...r,
-      stops: stops.filter((s: any) => s.route_id === r.id),
-    })),
+    routes,
+    stops,
   };
 
   const outputPath = join(DATA_DIR, "mty-transit.json");
@@ -110,11 +133,54 @@ function exportJSON(): void {
   console.log(`JSON exportado en ./data/mty-transit.json`);
 }
 
+async function fetchAndStoreSetmeRoutes(): Promise<void> {
+  const insertRoute = db.prepare(`
+    INSERT OR REPLACE INTO routes
+    (id, short_name, long_name, slug, type, color, encoded_line, entity_id, source, updated_at)
+    VALUES (?, ?, ?, ?, ?, NULL, ?, NULL, 'setme', datetime('now'))
+  `);
+  const insertStop = db.prepare(`
+    INSERT INTO stops (route_id, trip_headsign, name, lat, lng, order_index, source)
+    VALUES (?, ?, ?, ?, ?, ?, 'setme')
+  `);
+
+  db.prepare(`DELETE FROM stops WHERE source = 'setme'`).run();
+  db.prepare(`DELETE FROM routes WHERE source = 'setme'`).run();
+
+  const routes = await fetchSetmeRoutes();
+
+  db.transaction(() => {
+    for (const route of routes) {
+      insertRoute.run(
+        route.id,
+        route.short_name,
+        route.long_name,
+        slugifySetme(route.long_name),
+        route.modalidad,
+        route.encoded_line,
+      );
+      for (const stop of route.stops) {
+        insertStop.run(
+          route.id,
+          route.long_name,
+          stop.name,
+          stop.lat,
+          stop.lng,
+          stop.order_index,
+        );
+      }
+    }
+  })();
+
+  console.log(`  ${routes.length} rutas SETME almacenadas`);
+}
+
 export async function runUpdate(): Promise<void> {
   console.log("Actualizando MTY Transit...\n");
 
   const ids = await discoverRouteIds();
   await fetchAndStoreRoutes(ids);
+  await fetchAndStoreSetmeRoutes();
 
   const totalRoutes = (
     db.prepare(`SELECT COUNT(*) as c FROM routes`).get() as any
